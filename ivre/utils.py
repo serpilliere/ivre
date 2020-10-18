@@ -739,12 +739,17 @@ class FileOpener(object):
     def fileno(self):
         return self.fdesc.fileno()
 
-
     def wait_and_check(self):
         ret = self.proc.wait()
         if ret:
-            raise RuntimeError("Error in %s" % self.__class__)
-
+            raise RuntimeError(
+                "Error in %r %r %r %r" % (
+                    self.__class__,
+                    self.proc,
+                    self.fdesc,
+                    ret
+                )
+            )
 
     def close(self):
         # since .close() is explicitly called, we close self.fdesc
