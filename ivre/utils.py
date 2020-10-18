@@ -739,12 +739,19 @@ class FileOpener(object):
     def fileno(self):
         return self.fdesc.fileno()
 
+
+    def wait_and_check(self):
+        ret = self.proc.wait()
+        if ret:
+            raise RuntimeError("Error in %s" % self.__class__)
+
+
     def close(self):
         # since .close() is explicitly called, we close self.fdesc
         # even when self.close is False.
         self.fdesc.close()
         if self.proc is not None:
-            self.proc.wait()
+            self.wait_and_check()
 
     def __enter__(self):
         return self
@@ -753,7 +760,7 @@ class FileOpener(object):
         if self.needsclose:
             self.fdesc.close()
         if self.proc is not None:
-            self.proc.wait()
+            self.wait_and_check()
 
     def __iter__(self):
         return self
