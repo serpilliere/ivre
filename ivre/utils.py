@@ -716,6 +716,7 @@ class FileOpener(object):
             # Not a compressed file
             self.fdesc = open(fname, 'rb')
             return
+        self.cmd = cmd_opener
         try:
             # By default we try to use zcat / bzcat, since they seem to be
             # (a lot) faster
@@ -743,10 +744,11 @@ class FileOpener(object):
         ret = self.proc.wait()
         if ret:
             raise RuntimeError(
-                "Error in %r %r %r %r" % (
+                "Error in %r %r %r %r %r" % (
                     self.__class__,
                     self.proc,
                     self.fdesc,
+                    self.cmd,
                     ret
                 )
             )
