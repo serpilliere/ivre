@@ -702,7 +702,6 @@ class FileOpener(object):
     }
 
     def __init__(self, fname):
-        self.proc = None
         if not isinstance(fname, basestring):
             self.fdesc = fname
             self.needsclose = False
@@ -711,25 +710,11 @@ class FileOpener(object):
         with open(fname, 'rb') as fdesc:
             magic = fdesc.read(2)
         try:
-            cmd_opener, py_opener = self.FILE_OPENERS_MAGIC[magic]
+            _cmd_opener, py_opener = self.FILE_OPENERS_MAGIC[magic]
         except KeyError:
             # Not a compressed file
             self.fdesc = open(fname, 'rb')
             return
-        self.cmd = cmd_opener
-        self.fname = fname
-        try:
-            # By default we try to use zcat / bzcat, since they seem to be
-            # (a lot) faster
-            self.proc = subprocess.Popen([cmd_opener, fname],
-                                         stdout=subprocess.PIPE,
-                                         stderr=open(os.devnull, 'w'))
-            self.fdesc = self.proc.stdout
-            return
-        except OSError as exc:
-            if exc.errno != errno.ENOENT:
-                raise
-        # Fallback to the appropriate python opener
         self.fdesc = py_opener(fname)
 
     def read(self, *args):
@@ -741,26 +726,10 @@ class FileOpener(object):
     def fileno(self):
         return self.fdesc.fileno()
 
-    def wait_and_check(self):
-        ret = self.proc.wait()
-        if ret:
-            raise RuntimeError(
-                "Error in %r %r %r %r %r %r" % (
-                    self.__class__,
-                    self.proc,
-                    self.fdesc,
-                    self.cmd,
-                    self.fname,
-                    ret
-                )
-            )
-
     def close(self):
         # since .close() is explicitly called, we close self.fdesc
         # even when self.close is False.
         self.fdesc.close()
-        if self.proc is not None:
-            self.wait_and_check()
 
     def __enter__(self):
         return self
@@ -768,8 +737,6 @@ class FileOpener(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.needsclose:
             self.fdesc.close()
-        if self.proc is not None:
-            self.wait_and_check()
 
     def __iter__(self):
         return self
